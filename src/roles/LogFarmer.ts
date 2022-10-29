@@ -3,7 +3,6 @@ import { goals } from "mineflayer-pathfinder"
 import Bot from '../Bot'
 import Role, { RoleOptions } from '../Role'
 import minecraftData from "minecraft-data"
-import { Options } from 'discord.js'
 
 export interface LogFarmerOptions extends RoleOptions{
     chestLocation:Vec3
