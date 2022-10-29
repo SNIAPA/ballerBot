@@ -6,5 +6,5 @@ export default abstract class Role{
     this.bot = bot
 
   }
-  abstract execute(): void
+  abstract execute(): Promise<void>
 }
