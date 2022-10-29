@@ -8,6 +8,7 @@ import { ComputedPath ,pathfinder, Movements, goals as Goals, Pathfinder } from 
 import Role from './Role'
 import WildChopper from './roles/WildChopper'
 import { Entity } from 'prismarine-entity'
+import BotError from './exceptions'
 
 type RoleName = "WILD_CHOPPER"
 
@@ -37,6 +38,10 @@ export default class Bot{
   }
 
   setRole = (role:RoleName)=>{
+
+    if (this.role != null)
+      this.role.removeListeners()
+
     let selectedRole 
     switch (role) {
       case "WILD_CHOPPER":
@@ -44,6 +49,7 @@ export default class Bot{
         break;
     }
     this.role = selectedRole
+
   }
 
   getPathTo = async (goal: Goals.Goal, timeout = 5000) => {
@@ -58,11 +64,11 @@ export default class Bot{
       result = path.next()
     while(result.value.result.status == 'partial')
     return result.value.result as ComputedPath
+
   } 
 
   pickup = async (entity: Entity) => {
     const goal = new Goals.GoalNear(entity.position.x,entity.position.y,entity.position.z,0.4)
-    const path = await this.getPathTo(goal)
     await this.mBot.pathfinder.goto(goal)
   }
 }

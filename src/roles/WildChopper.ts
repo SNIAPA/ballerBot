@@ -8,6 +8,7 @@ import {
 import Bot from '../Bot'
 import Role from '../Role'
 import { Block } from 'prismarine-block'
+import { Entity } from 'prismarine-entity'
 
 export default class WildChopper extends Role {
   blacklist: Vec3[] = []
@@ -16,20 +17,44 @@ export default class WildChopper extends Role {
     super(bot)
   }
 
-  chop = async (block: Block) => {
-    let repeat
-    do {
-      repeat = false
-      try {
-        await this.bot.mBot.equip(
-          this.bot.mBot.pathfinder.bestHarvestTool(block)!,
-          'hand'
-        )
-        await this.bot.mBot.dig(block, true)
-      } catch (e) {
-        repeat = true
+  async execute(): Promise<void> {
+    while (true) {
+      const block = await this.findNextLog()
+      if (!block) break
+
+      if (this.bot.mBot.canDigBlock(block)) {
+        await this.chop(block)
+        continue
       }
-    } while (repeat)
+
+      // get path
+      const goal = new Goals.GoalNear(
+        block.position.x,
+        block.position.y,
+        block.position.z,
+        4
+      )
+      const path = await this.bot.getPathTo(goal, 300)
+
+      if (path.status == 'timeout') {
+        this.blacklist.push(block.position)
+        console.log(`path ${path.status}`)
+        continue
+      }
+
+      await this.bot.mBot.pathfinder.goto(goal)
+      await this.chop(block)
+
+    }
+    console.log('NO MORE LOGS TO CHOP')
+  }
+
+  chop = async (block: Block) => {
+    await this.bot.mBot.equip(
+      this.bot.mBot.pathfinder.bestHarvestTool(block)!,
+      'hand'
+    )
+    await this.bot.mBot.dig(block, true)
   }
 
   findNextLog = async () => {
@@ -41,50 +66,25 @@ export default class WildChopper extends Role {
     })
   }
 
-  pickupLogsAround = async () => {
-    for (const entity in this.bot.mBot.entities) {
-      const val = this.bot.mBot.entities[entity]
-      if (
-        val.position.distanceTo(this.bot.mBot.entity.position) > 10 ||
-        val.name != 'Item' ||
-        this.bot.mcData.blocks[(val.metadata[10] as any).blockId] ==
-          undefined ||
-        !this.bot.mcData.blocks[
-          (val.metadata[10] as any).blockId
-        ].name.endsWith('log')
+  onEntityDrop = async (e: Entity) => {
+    console.log(e.name)
+    return
+    if (
+      e.position.distanceTo(this.bot.mBot.entity.position) > 10 ||
+      e.name != 'Item' ||
+      this.bot.mcData.blocks[(e.metadata[10] as any).blockId] == undefined ||
+      !this.bot.mcData.blocks[(e.metadata[10] as any).blockId].name.endsWith(
+        'log'
       )
-        continue
-
-      await this.bot.pickup(val)
-    }
+    )
+      await this.bot.pickup(e)
   }
 
-  async execute(): Promise<void> {
-    while (true) {
-      const block = await this.findNextLog()
-      if (!block) break
-
-      // get path
-      const goal = new Goals.GoalNear(
-        block.position.x,
-        block.position.y,
-        block.position.z,
-        4
-      )
-      const path = await this.bot.getPathTo(goal,100)
-
-      if (path.status == 'timeout') {
-        this.blacklist.push(block.position)
-        console.log(`path ${path.status}`)
-        continue
-      }
-
-      await this.bot.mBot.pathfinder.goto(goal)
-
-      await this.chop(block)
-
-      await  this.pickupLogsAround()
-    }
-    console.log('NO MORE LOGS TO CHOP')
+  registerListeners = () => {
+    this.bot.mBot.on("itemDrop",this.onEntityDrop)
   }
+  removeListeners = () => {
+    this.bot.mBot.removeListener("itemDrop",this.onEntityDrop)
+  }
+
 }
