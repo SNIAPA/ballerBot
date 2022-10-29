@@ -1,31 +1,24 @@
 import MinecraftData from 'minecraft-data'
 import { Bot as SBot, BotOptions, createBot } from 'mineflayer'
 import minecraftData from 'minecraft-data'
-import mineflayer from 'mineflayer'
-const radar = require('mineflayer-radar')(mineflayer)
-import cmd from 'mineflayer-cmd'
 import {
   ComputedPath,
   pathfinder,
   Movements,
   goals as Goals,
-  Pathfinder,
 } from 'mineflayer-pathfinder'
 import Role from './Role'
 import WildChopper from './roles/WildChopper'
 import { Entity } from 'prismarine-entity'
-import BotError from './exceptions'
 
 type RoleName = 'WILD_CHOPPER'
 
-type Action = (bot: Bot) => Promise<void>
 
 
 export default class Bot {
   mBot: SBot
   mcData: MinecraftData.IndexedData
   role?: Role
-  actionQueue: Action[] = []
 
   constructor(options: BotOptions) {
     this.mBot = createBot(options)
@@ -43,6 +36,7 @@ export default class Bot {
     })
   }
 
+
   setRole = (role: RoleName) => {
     if (this.role != null) this.role.removeListeners()
 
@@ -56,12 +50,12 @@ export default class Bot {
     this.role.registerListeners()
   }
 
-  getPathTo = async (goal: Goals.Goal, timeout = 5000) => {
+  getPathTo = async (goal: Goals.Goal ) => {
     const path = this.mBot.pathfinder.getPathFromTo(
       this.mBot.pathfinder.movements,
       this.mBot.entity.position,
       goal,
-      { timeout }
+      {tickTimeout:1000}
     )
     let result
     do result = path.next()
@@ -70,12 +64,16 @@ export default class Bot {
   }
 
   pickup = async (entity: Entity) => {
-    const goal = new Goals.GoalNear(
+    const goal = new Goals.GoalXZ(
       entity.position.x,
-      entity.position.y,
       entity.position.z,
-      0.4
     )
+    const path = await this.getPathTo(goal)
+
+    if (path.status == 'timeout') {
+      console.log(`path ${path.status} ${entity.position}`)
+      return
+    }
     await this.mBot.pathfinder.goto(goal)
   }
 }

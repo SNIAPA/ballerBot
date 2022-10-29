@@ -12,10 +12,13 @@ import { Entity } from 'prismarine-entity'
 
 export default class WildChopper extends Role {
   blacklist: Vec3[] = []
+  pickupQueue: (() => Promise<void>)[] = []
 
   constructor(bot: Bot) {
     super(bot)
   }
+
+
 
   async execute(): Promise<void> {
     while (true) {
@@ -34,15 +37,19 @@ export default class WildChopper extends Role {
         block.position.z,
         4
       )
-      const path = await this.bot.getPathTo(goal, 300)
+      const path = await this.bot.getPathTo(goal)
 
       if (path.status == 'timeout') {
         this.blacklist.push(block.position)
-        console.log(`path ${path.status}`)
         continue
       }
-
-      await this.bot.mBot.pathfinder.goto(goal)
+      try {
+        await this.bot.mBot.pathfinder.goto(goal)
+        this.bot.mBot.pathfinder.goal
+      } catch (e) {
+        this.blacklist.push(block.position)
+        continue
+      }
       await this.chop(block)
 
     }
@@ -57,7 +64,17 @@ export default class WildChopper extends Role {
         item,
         'hand'
       )
-    await this.bot.mBot.dig(block, true)
+    let done 
+    do {
+      try{
+        done = false
+        await this.bot.mBot.dig(block, true)
+      } catch (e) {
+        done = true
+      }
+      
+    } while (done);
+
   }
 
   findNextLog = async () => {
@@ -69,26 +86,9 @@ export default class WildChopper extends Role {
     })
   }
 
-  onEntityDrop = async (e: Entity) => {
-    console.log(e.name)
-    return
-    if (
-      e.position.distanceTo(this.bot.mBot.entity.position) > 10 ||
-      e.name != 'Item' ||
-      this.bot.mcData.blocks[(e.metadata[10] as any).blockId] == undefined ||
-      !this.bot.mcData.blocks[(e.metadata[10] as any).blockId].name.endsWith(
-        'log'
-      )
-    )
-      await this.bot.pickup(e)
-  }
-
   override registerListeners = () => {
-    console.log('loadListeners')
-    this.bot.mBot.on("itemDrop",this.onEntityDrop)
   }
   override removeListeners = () => {
-    this.bot.mBot.removeListener("itemDrop",this.onEntityDrop)
   }
 
 }
