@@ -30,15 +30,23 @@ export default class LogFarmer extends Role {
                         maxDistance: 40,
                         matching: x => x.name.endsWith("log")
                     })
+                    
                     if (toHarvest) {
                         const goal = new goals.GoalNear(toHarvest.position.x, toHarvest.position.y, toHarvest.position.z, 4)
                         await this.bot.mBot.pathfinder.goto(goal)
-                        if (this.bot.mBot.pathfinder.bestHarvestTool(toHarvest)) this.bot.mBot.equip(this.bot.mBot.pathfinder.bestHarvestTool(toHarvest)!, "hand")
+                        try{if (this.bot.mBot.pathfinder.bestHarvestTool(toHarvest)) this.bot.mBot.equip(this.bot.mBot.pathfinder.bestHarvestTool(toHarvest)!, "hand")}catch{}
                         console.log("breaking log")
                         await this.bot.mBot.dig(toHarvest)
+                        const harvestNext = this.bot.mBot.findBlock({
+                            maxDistance: 3,
+                            matching: x => x.name.endsWith("log")
+                        })
+                        if(harvestNext){
+                            if(this.bot.mBot.canDigBlock(harvestNext)){ console.log("breaking log"), await this.bot.mBot.dig(harvestNext)}
+                        }
                         try {
                             await this.pickUpItems(3)
-                            await this.replant(3)
+                            await this.replant(2)
                         } catch { }
 
                     } else {
@@ -57,7 +65,8 @@ export default class LogFarmer extends Role {
                 console.log(err)
             }
             // replant missed plants
-            while (1) {
+            let saplingCount = this.bot.mBot.inventory.findInventoryItem(this.mcData.itemsByName.sapling.id, null, false)?.count
+            while((saplingCount) && (saplingCount > 0)){
                 await this.replant(40)
             }
         } catch (e) {
@@ -67,19 +76,24 @@ export default class LogFarmer extends Role {
         console.log("done")
         setTimeout(this.execute, 500)
     }
+
+    // method for depositing items in inventory except axe and then pick up 64 saplings
     private async deposit(chestLocation:Vec3) {
         await this.bot.mBot.pathfinder.goto(new goals.GoalNear(chestLocation.x, chestLocation.y, chestLocation.z, 1))
         let chest = await this.bot.mBot.openContainer(this.bot.mBot.blockAt(chestLocation)!)
-        let n = await this.bot.mBot.inventory.slots.length + 1
+        let n = this.bot.mBot.inventory.slots.length + 1
         console.log("starting deposit...")
         while (n > 0) {
             let slot = this.bot.mBot.inventory.slots[n]
             if (slot && !slot.name.includes("axe")) {
                 console.log(`deposited  ${slot.count} ${slot.name}`)
-                try { await chest.deposit(slot.type, null, slot.count) } catch (err) { }
+                try {await chest.deposit(slot.type, null, slot.count) } catch (err) { }
             }
             n = n - 1
         }
+        setTimeout(() => {
+            chest.close()
+        }, 500);
         console.log("done depositing")
         n = chest.slots.length
         while (n > 0) {
@@ -110,6 +124,7 @@ export default class LogFarmer extends Role {
         }
     }
 
+    // method to equip sapling then place on valid block
     async replant(distance: number) {
         const toReplant = this.bot.mBot.findBlock({
             point: this.bot.mBot.entity.position,
@@ -117,10 +132,17 @@ export default class LogFarmer extends Role {
             maxDistance: distance
         })
         if (toReplant) {
-            console.log("replanting")
-            await this.bot.mBot.pathfinder.goto(new goals.GoalNear(toReplant.position.x, toReplant.position.y, toReplant.position.z, 4))
-            await this.bot.mBot.equip(this.mcData.itemsByName.sapling.id, 'hand')
-            await this.bot.mBot.placeBlock(toReplant, new Vec3(0, 1, 0))
+            let saplingCount = this.bot.mBot.inventory.findInventoryItem(this.mcData.itemsByName.sapling.id, null, false)?.count
+            if((saplingCount) && (saplingCount > 0)){
+                console.log("replanting")
+                await this.bot.mBot.pathfinder.goto(new goals.GoalNear(toReplant.position.x, toReplant.position.y, toReplant.position.z, 4))
+                try{await this.bot.mBot.equip(this.mcData.itemsByName.sapling.id, 'hand')} catch{}
+                await this.bot.mBot.placeBlock(toReplant, new Vec3(0, 1, 0))
+            } else{
+                console.log("No saplings, skipping replant")
+                return true
+            }
+            
         }
     }
 }
