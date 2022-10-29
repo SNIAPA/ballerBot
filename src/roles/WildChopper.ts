@@ -1,14 +1,9 @@
 import { Vec3 } from 'vec3'
 import {
-  ComputedPath,
-  pathfinder,
-  Movements,
   goals as Goals,
 } from 'mineflayer-pathfinder'
-import Bot from '../Bot'
 import Role, { RoleOptions } from '../Role'
 import { Block } from 'prismarine-block'
-import { Entity } from 'prismarine-entity'
 import { ItemEntityData } from '../types'
 
 export default class WildChopper extends Role {
