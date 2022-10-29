@@ -50,10 +50,13 @@ export default class WildChopper extends Role {
   }
 
   chop = async (block: Block) => {
-    await this.bot.mBot.equip(
-      this.bot.mBot.pathfinder.bestHarvestTool(block)!,
-      'hand'
-    )
+    const item = this.bot.mBot.pathfinder.bestHarvestTool(block)
+
+    if(item)
+      await this.bot.mBot.equip(
+        item,
+        'hand'
+      )
     await this.bot.mBot.dig(block, true)
   }
 
@@ -80,10 +83,11 @@ export default class WildChopper extends Role {
       await this.bot.pickup(e)
   }
 
-  registerListeners = () => {
+  override registerListeners = () => {
+    console.log('loadListeners')
     this.bot.mBot.on("itemDrop",this.onEntityDrop)
   }
-  removeListeners = () => {
+  override removeListeners = () => {
     this.bot.mBot.removeListener("itemDrop",this.onEntityDrop)
   }
 

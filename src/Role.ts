@@ -5,10 +5,9 @@ export default abstract class Role{
   constructor(bot:Bot){
     this.bot = bot
     
-    this.registerListeners()
   }
   abstract execute(): Promise<void>
 
-  registerListeners = () => {}
-  removeListeners = () => {}
+  abstract registerListeners : () => void
+  abstract removeListeners : () => void
 }
