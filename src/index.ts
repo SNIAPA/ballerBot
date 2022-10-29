@@ -11,6 +11,6 @@ const options = {
 
 const bot = new Bot(options)
 
-bot.setRole("WILD_CHOPPER")
+bot.setRole("LOG_FARMER")
 
 

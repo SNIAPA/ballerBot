@@ -6,7 +6,7 @@ import {
   goals as Goals,
 } from 'mineflayer-pathfinder'
 import Bot from '../Bot'
-import Role from '../Role'
+import Role, { RoleOptions } from '../Role'
 import { Block } from 'prismarine-block'
 import { Entity } from 'prismarine-entity'
 import { ItemEntityData } from '../types'
@@ -15,8 +15,8 @@ export default class WildChopper extends Role {
   blacklist: Vec3[] = []
   pickupQueue: (() => Promise<void>)[] = []
 
-  constructor(bot: Bot) {
-    super(bot)
+  constructor(options:RoleOptions) {
+    super(options)
   }
 
 

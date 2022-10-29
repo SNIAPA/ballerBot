@@ -17,6 +17,7 @@
     "mineflayer-pathfinder": "^2.4.0",
     "mineflayer-radar": "^0.0.2",
     "prismarine-block": "^1.16.3",
-    "prismarine-entity": "^2.2.0"
+    "prismarine-entity": "^2.2.0",
+    "typescript": "^4.8.4"
   }
 }
