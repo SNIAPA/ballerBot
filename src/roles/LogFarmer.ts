@@ -145,4 +145,9 @@ export default class LogFarmer extends Role {
             
         }
     }
+    
+    override registerListeners = () => {
+    }
+    override removeListeners = () => {
+    }
 }
