@@ -55,7 +55,7 @@ export default class WildChopper extends Role {
       )
         continue
 
-      this.bot.pickup(val)
+      await this.bot.pickup(val)
     }
   }
 
@@ -71,9 +71,7 @@ export default class WildChopper extends Role {
         block.position.z,
         4
       )
-
-      console.log('asdf')
-      const path = await this.bot.getPathTo(goal)
+      const path = await this.bot.getPathTo(goal,100)
 
       if (path.status == 'timeout') {
         this.blacklist.push(block.position)
@@ -81,16 +79,11 @@ export default class WildChopper extends Role {
         continue
       }
 
-      console.log('asdf1')
-      console.log(this.bot.mBot.pathfinder.isMoving())
       await this.bot.mBot.pathfinder.goto(goal)
-      console.log(this.bot.mBot.pathfinder.isMoving())
 
-      console.log('asdf2')
       await this.chop(block)
 
-      console.log('asdf3')
-      await this.pickupLogsAround()
+      await  this.pickupLogsAround()
     }
     console.log('NO MORE LOGS TO CHOP')
   }
