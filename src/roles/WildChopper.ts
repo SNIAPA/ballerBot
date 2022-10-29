@@ -9,6 +9,7 @@ import Bot from '../Bot'
 import Role from '../Role'
 import { Block } from 'prismarine-block'
 import { Entity } from 'prismarine-entity'
+import { ItemEntityData } from '../types'
 
 export default class WildChopper extends Role {
   blacklist: Vec3[] = []
@@ -21,8 +22,18 @@ export default class WildChopper extends Role {
 
 
   async execute(): Promise<void> {
+    let blocks = await this.findSomeLogs();
     while (true) {
-      const block = await this.findNextLog()
+      if(blocks.length == 0){
+        blocks = await this.findSomeLogs();
+        if(blocks.length == 0)
+          break
+      }else{
+        blocks.sort((a,b)=>a.distanceTo(this.bot.mBot.entity.position) - b.distanceTo(this.bot.mBot.entity.position))
+
+      }
+
+      const block = this.bot.mBot.blockAt(blocks.pop()!) 
       if (!block) break
 
       if (this.bot.mBot.canDigBlock(block)) {
@@ -37,12 +48,14 @@ export default class WildChopper extends Role {
         block.position.z,
         4
       )
+
       const path = await this.bot.getPathTo(goal)
 
       if (path.status == 'timeout') {
         this.blacklist.push(block.position)
         continue
       }
+
       try {
         await this.bot.mBot.pathfinder.goto(goal)
         this.bot.mBot.pathfinder.goal
@@ -50,14 +63,43 @@ export default class WildChopper extends Role {
         this.blacklist.push(block.position)
         continue
       }
+
       await this.chop(block)
+
+      for (const i in this.bot.mBot.entities) {
+        const entity = this.bot.mBot.entities[i];
+
+
+        if (entity.type != 'object')
+          continue
+          
+
+        const data = entity.metadata[10] as ItemEntityData 
+        if(!data)
+          continue
+
+        const block = this.bot.mcData.blocks[data.blockId]
+
+        if(block.name != 'log')
+          continue
+
+        await this.bot.pickup(entity,true)
+
+        
+      }
 
     }
     console.log('NO MORE LOGS TO CHOP')
   }
 
   chop = async (block: Block) => {
-    const item = this.bot.mBot.pathfinder.bestHarvestTool(block)
+    let item
+    try {
+      
+    item = this.bot.mBot.pathfinder.bestHarvestTool(block)
+    } catch (e) {
+      
+    }
 
     if(item)
       await this.bot.mBot.equip(
@@ -75,14 +117,15 @@ export default class WildChopper extends Role {
       
     } while (done);
 
+    console.log(`dug ${block.position}`)
   }
 
-  findNextLog = async () => {
-    return this.bot.mBot.findBlock({
+  findSomeLogs = async (range = 1000) => {
+    return this.bot.mBot.findBlocks({
       matching: (x) =>
         x.name.endsWith('log') &&
         !this.blacklist.find((y) => y.distanceTo(x.position) == 0),
-      maxDistance: 1000,
+      maxDistance: range,
     })
   }
 

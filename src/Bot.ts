@@ -63,10 +63,13 @@ export default class Bot {
     return result.value.result as ComputedPath
   }
 
-  pickup = async (entity: Entity) => {
-    const goal = new Goals.GoalXZ(
+  pickup = async (entity: Entity, comeBack = false) => {
+    const startingLocation = this.mBot.entity.position;
+    const goal = new Goals.GoalNear(
       entity.position.x,
+      entity.position.y,
       entity.position.z,
+      0.4   
     )
     const path = await this.getPathTo(goal)
 
@@ -75,5 +78,12 @@ export default class Bot {
       return
     }
     await this.mBot.pathfinder.goto(goal)
+    if (comeBack) {
+      
+      const goal = new Goals.GoalBlock(startingLocation.x,startingLocation.y,startingLocation.z)
+
+      await this.mBot.pathfinder.goto(goal)
+
+    }
   }
 }
