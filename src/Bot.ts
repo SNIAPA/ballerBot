@@ -17,34 +17,32 @@ type RoleName = "WILD_CHOPPER" | "LOG_FARMER"
 
 
 
-export default class Bot{
+export default class Bot {
   mBot: SBot
   mcData: MinecraftData.IndexedData
   role?: Role
 
-  constructor(options:BotOptions) {
-
+  constructor(options: BotOptions) {
     this.mBot = createBot(options)
     this.mcData = minecraftData(this.mBot.version)
     this.mBot.loadPlugin(pathfinder)
     this.mBot.pathfinder.setMovements(new Movements(this.mBot, this.mcData))
-    
-    this.mBot.on("spawn",()=>{
+
+    this.mBot.on('spawn', () => {
       if (this.role) {
         this.role.execute()
       }
-    })    
-    this.mBot.on("login",()=>{
+    })
+    this.mBot.on('login', () => {
       console.log(`${this.mBot.username} is up`)
     })
   }
 
-  setRole = (role:RoleName)=>{
 
-    if (this.role != null)
-      this.role.removeListeners()
+  setRole = (role: RoleName) => {
+    if (this.role != null) this.role.removeListeners()
 
-    let selectedRole 
+    let selectedRole
     switch (role) {
       case "WILD_CHOPPER":
         selectedRole = new WildChopper({bot:this})
@@ -54,27 +52,43 @@ export default class Bot{
         break
     }
     this.role = selectedRole
-
+    this.role.registerListeners()
   }
 
-  getPathTo = async (goal: Goals.Goal, timeout = 5000) => {
-    const path = this.mBot.pathfinder.getPathFromTo( 
+  getPathTo = async (goal: Goals.Goal ) => {
+    const path = this.mBot.pathfinder.getPathFromTo(
       this.mBot.pathfinder.movements,
       this.mBot.entity.position,
       goal,
-      {timeout}
+      {tickTimeout:1000}
     )
     let result
-    do
-      result = path.next()
-    while(result.value.result.status == 'partial')
+    do result = path.next()
+    while (result.value.result.status == 'partial')
     return result.value.result as ComputedPath
+  }
 
-  } 
+  pickup = async (entity: Entity, comeBack = false) => {
+    const startingLocation = this.mBot.entity.position;
+    const goal = new Goals.GoalNear(
+      entity.position.x,
+      entity.position.y,
+      entity.position.z,
+      0.4   
+    )
+    const path = await this.getPathTo(goal)
 
-  pickup = async (entity: Entity) => {
-    const goal = new Goals.GoalNear(entity.position.x,entity.position.y,entity.position.z,0.4)
+    if (path.status == 'timeout') {
+      console.log(`path ${path.status} ${entity.position}`)
+      return
+    }
     await this.mBot.pathfinder.goto(goal)
+    if (comeBack) {
+      
+      const goal = new Goals.GoalBlock(startingLocation.x,startingLocation.y,startingLocation.z)
+
+      await this.mBot.pathfinder.goto(goal)
+
+    }
   }
 }
-
