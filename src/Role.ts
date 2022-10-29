@@ -1,9 +1,13 @@
 import Bot from "./Bot";
 
+export interface RoleOptions{
+  bot:Bot
+}
+
 export default abstract class Role{
   bot:Bot
-  constructor(bot:Bot){
-    this.bot = bot
+  constructor(options:RoleOptions){
+    this.bot = options.bot
     
     this.registerListeners()
   }

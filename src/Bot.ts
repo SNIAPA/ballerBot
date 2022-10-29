@@ -1,16 +1,18 @@
 import MinecraftData from 'minecraft-data'
+import { Vec3 } from 'vec3'
 import {Bot as SBot, BotOptions, createBot} from 'mineflayer'
 import minecraftData from 'minecraft-data'
 import mineflayer from 'mineflayer'
 const radar = require('mineflayer-radar')(mineflayer)
 import cmd from 'mineflayer-cmd'
 import { ComputedPath ,pathfinder, Movements, goals as Goals, Pathfinder } from 'mineflayer-pathfinder'
-import Role from './Role'
+import Role, { RoleOptions } from './Role'
 import WildChopper from './roles/WildChopper'
 import { Entity } from 'prismarine-entity'
 import BotError from './exceptions'
+import LogFarmer from './roles/LogFarmer'
 
-type RoleName = "WILD_CHOPPER"
+type RoleName = "WILD_CHOPPER" | "LOG_FARMER"
 
 
 
@@ -45,8 +47,11 @@ export default class Bot{
     let selectedRole 
     switch (role) {
       case "WILD_CHOPPER":
-        selectedRole = new WildChopper(this)
+        selectedRole = new WildChopper({bot:this})
         break;
+      case "LOG_FARMER":
+        selectedRole = new LogFarmer({bot:this, chestLocation:new Vec3(261, 121, 192)})
+        break
     }
     this.role = selectedRole
 
