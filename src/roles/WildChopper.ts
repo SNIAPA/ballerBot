@@ -18,17 +18,19 @@ export default class WildChopper extends Role {
 
   async execute(): Promise<void> {
     let blocks = await this.findSomeLogs();
+    blocks.sort((a,b)=>a.distanceTo(this.bot.mBot.entity.position) - b.distanceTo(this.bot.mBot.entity.position))
     while (true) {
       if(blocks.length == 0){
         blocks = await this.findSomeLogs();
-        if(blocks.length == 0)
-          break
-      }else{
         blocks.sort((a,b)=>a.distanceTo(this.bot.mBot.entity.position) - b.distanceTo(this.bot.mBot.entity.position))
-
+        if(blocks.length == 0){
+          break
+        }
       }
 
-      const block = this.bot.mBot.blockAt(blocks.pop()!) 
+
+      const block = this.bot.mBot.blockAt(blocks[0]!) 
+      blocks = blocks.slice(1,blocks.length)
       if (!block) break
 
       if (this.bot.mBot.canDigBlock(block)) {
@@ -36,30 +38,6 @@ export default class WildChopper extends Role {
         continue
       }
 
-      // get path
-      const goal = new Goals.GoalNear(
-        block.position.x,
-        block.position.y,
-        block.position.z,
-        4
-      )
-
-      const path = await this.bot.getPathTo(goal)
-
-      if (path.status == 'timeout') {
-        this.blacklist.push(block.position)
-        continue
-      }
-
-      try {
-        await this.bot.mBot.pathfinder.goto(goal)
-        this.bot.mBot.pathfinder.goal
-      } catch (e) {
-        this.blacklist.push(block.position)
-        continue
-      }
-
-      await this.chop(block)
 
       for (const i in this.bot.mBot.entities) {
         const entity = this.bot.mBot.entities[i];
@@ -73,15 +51,50 @@ export default class WildChopper extends Role {
         if(!data)
           continue
 
-        const block = this.bot.mcData.blocks[data.blockId]
+        const block = this.bot.mcData.blocks[data.blockId] ?? this.bot.mcData.entities[data.blockId] ?? this.bot.mcData.items[data.blockId]
 
         if(block.name != 'log')
           continue
 
-        await this.bot.pickup(entity,true)
+        await this.bot.pickup(entity)
 
         
       }
+
+
+      // get path
+      const goal = new Goals.GoalNear(
+        block.position.x,
+        block.position.y,
+        block.position.z,
+        3
+      )
+
+
+      console.time('thinking')
+      const path = await this.bot.getPathTo(goal)
+      console.timeEnd('thinking')
+
+      if (path.status == 'timeout') {
+        console.log('timeout')
+        this.blacklist.push(block.position)
+        continue
+      }
+
+      try {
+        console.time('walking')
+        await this.bot.mBot.pathfinder.goto(goal)
+        console.timeEnd('walking')
+      } catch (e) {
+        console.error(e)
+        console.timeEnd('walking')
+        this.blacklist.push(block.position)
+        continue
+      }
+
+      await this.chop(block)
+
+      blocks.sort((a,b)=>a.distanceTo(this.bot.mBot.entity.position) - b.distanceTo(this.bot.mBot.entity.position))
 
     }
     console.log('NO MORE LOGS TO CHOP')
@@ -89,18 +102,19 @@ export default class WildChopper extends Role {
 
   chop = async (block: Block) => {
     let item
-    try {
       
-    item = this.bot.mBot.pathfinder.bestHarvestTool(block)
-    } catch (e) {
-      
-    }
+      item = this.bot.mBot.pathfinder.bestHarvestTool(block)
 
-    if(item)
-      await this.bot.mBot.equip(
-        item,
-        'hand'
-      )
+    if(item){
+      try {
+        await this.bot.mBot.equip(
+          item,
+          'hand'
+        )
+      } catch (e) {
+        
+      }
+    }
     let done 
     do {
       try{
@@ -112,15 +126,15 @@ export default class WildChopper extends Role {
       
     } while (done);
 
-    console.log(`dug ${block.position}`)
   }
 
-  findSomeLogs = async (range = 1000) => {
+  findSomeLogs = async (range = 128) => {
     return this.bot.mBot.findBlocks({
       matching: (x) =>
-        x.name.endsWith('log') &&
-        !this.blacklist.find((y) => y.distanceTo(x.position) == 0),
+        x.name == 'log' &&
+        !this.blacklist.find(y=>y.distanceTo(x.position) == 0),
       maxDistance: range,
+      count: 99999
     })
   }
 
