@@ -39,6 +39,7 @@ export default class Bot {
   }
 
 
+
   setRole = (role: RoleName) => {
     if (this.role != null) this.role.removeListeners()
 
@@ -48,12 +49,65 @@ export default class Bot {
         selectedRole = new WildChopper({bot:this})
         break;
       case "LOG_FARMER":
-        selectedRole = new LogFarmer({bot:this, chestLocation:new Vec3(261, 121, 192)})
+        selectedRole = new LogFarmer({bot:this, chestLocation:new Vec3(261, 121, 192), bedLocation:new Vec3(263, 121, 196)})
         break
     }
     this.role = selectedRole
     this.role.registerListeners()
   }
+
+  async setSpawn(bedLocation: Vec3) {
+    try { 
+      await this.mBot.pathfinder.goto(new Goals.GoalNear(bedLocation.x, bedLocation.y, bedLocation.z, 1))
+      await this.mBot.sleep(this.mBot.blockAt(bedLocation)!)}  catch { }
+  }
+
+  findByUsername(username:string) {
+    var target = this.mBot.players[username]
+    if(target){
+      return(target)
+    } else {
+        return
+    }
+  }
+
+  printLocation(username:string){
+    var target = this.findByUsername(username)
+    if (target){
+      this.mBot.chat(`${username} is at X: ${Math.round(target.entity.position.x)} Y: ${Math.round(target.entity.position.y)} Z: ${Math.round(target.entity.position.z)}`)
+    }
+    
+  }
+
+  async gotoPlayer(username:string){
+    var target = this.findByUsername(username)
+    if(target ){
+      try {
+        this.mBot.pathfinder.goto(new Goals.GoalNear(target.entity.position.x, target.entity.position.y, target.entity.position.z, 0))
+      } catch{
+        console.log("Can't go to " + username)
+      }
+    } else {
+        console.log("Can't find " + username)
+    }
+  }
+
+  followPlayer(username:string) {
+    var target = this.findByUsername(username)
+
+    if (target) {
+        try{
+          this.mBot.pathfinder.stop()
+          this.mBot.pathfinder.setGoal(new Goals.GoalFollow(target.entity, 2), true)
+          console.log("Following " + username)
+        } catch{
+          console.log("Can't follow " + username)
+      }
+    } else {
+      console.log("I cant see " + username)
+    }
+  }
+
 
   getPathTo = async (goal: Goals.Goal ) => {
     const path = this.mBot.pathfinder.getPathFromTo(
@@ -91,4 +145,6 @@ export default class Bot {
 
     }
   }
+
+
 }
