@@ -27,6 +27,7 @@ export default class Bot {
     this.mcData = minecraftData(this.mBot.version)
     this.mBot.loadPlugin(pathfinder)
     this.mBot.pathfinder.setMovements(new Movements(this.mBot, this.mcData))
+    this.mBot.pathfinder.movements.allowParkour = false
 
     this.mBot.on('spawn', () => {
       if (this.role) {
@@ -36,6 +37,8 @@ export default class Bot {
     this.mBot.on('login', () => {
       console.log(`${this.mBot.username} is up`)
     })
+    this.mBot.pathfinder.thinkTimeout = 5000
+
   }
 
 
@@ -114,7 +117,7 @@ export default class Bot {
       this.mBot.pathfinder.movements,
       this.mBot.entity.position,
       goal,
-      {tickTimeout:1000}
+      {timeout:2000}
     )
     let result
     do result = path.next()
